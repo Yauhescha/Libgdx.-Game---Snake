@@ -6,6 +6,8 @@ import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
@@ -16,20 +18,26 @@ public class GameScreen extends ScreenAdapter {
     private static final float MOVE_TIME = 0.1F;
     private static final int SNAKE_MOVEMENT = 32;
     private static final int GRID_CELL = SNAKE_MOVEMENT;
+    public static final String GAME_OVER = "Game over.. Tap space to restart!";
 
     private SpriteBatch batch;
     private Texture snakeHead;
     private Texture snakeBody;
     private Texture apple;
     private ShapeRenderer shapeRenderer;
+    private BitmapFont bitmapFont;
+    private GlyphLayout glyphLayout;
+
+    private MovingDirection direction = MovingDirection.RIGHT;
+    private State state = State.PLAYING;
     private float timer = MOVE_TIME;
     private int snakeX = 0;
     private int snakeY = 0;
     private int snakeXBeforeUpdate = 0;
     private int snakeYBeforeUpdate = 0;
-    private MovingDirection direction = MovingDirection.RIGHT;
     private boolean isAppleAvailable;
     private boolean isDirectionSet;
+    private boolean hasHit;
     private int appleX;
     private int appleY;
     private Array<BodyPart> bodyParts = new Array<>();
@@ -42,24 +50,57 @@ public class GameScreen extends ScreenAdapter {
         snakeBody = new Texture(Gdx.files.internal("snakeBody.jpg"));
         apple = new Texture(Gdx.files.internal("apple.jpg"));
         shapeRenderer = new ShapeRenderer();
+        bitmapFont = new BitmapFont();
+        glyphLayout = new GlyphLayout();
     }
 
     @Override
     public void render(float delta) {
-        queryInput();
+        switch (state) {
+            case PLAYING:
+                queryInput();
+                updateSnake(delta);
+                checkAndPlaceApple();
+                checkAppleCollision();
+                break;
+            case GAME_OVER:
+                checkForRestart();
+                break;
+        }
+        ScreenUtils.clear(Color.BLACK);
+//        drawGrid();
+        draw();
+    }
+
+    private void updateSnake(float delta) {
         timer -= delta;
         if (timer <= 0) {
             timer = MOVE_TIME;
             moveSnake();
             checkForOutOfBounds();
             updateBodyPartsPosition();
+            checkSnakeBodyCollision();
+            isDirectionSet = false;
         }
-        checkAndPlaceApple();
-        checkAppleCollision();
-        ScreenUtils.clear(Color.BLACK);
+    }
 
-        drawGrid();
-        draw();
+    private void checkForRestart() {
+        if (Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
+            doRestart();
+        }
+    }
+
+    private void doRestart() {
+        state = State.PLAYING;
+        bodyParts.clear();
+        direction = MovingDirection.RIGHT;
+        isDirectionSet = false;
+        timer = MOVE_TIME;
+        snakeX = 0;
+        snakeY = 0;
+        snakeXBeforeUpdate = 0;
+        snakeYBeforeUpdate = 0;
+        isAppleAvailable = false;
     }
 
     private void checkAppleCollision() {
@@ -79,6 +120,10 @@ public class GameScreen extends ScreenAdapter {
         }
         if (isAppleAvailable) {
             batch.draw(apple, appleX, appleY);
+        }
+        if (state == State.GAME_OVER) {
+            glyphLayout.setText(bitmapFont, GAME_OVER);
+            bitmapFont.draw(batch, glyphLayout, (Gdx.graphics.getWidth() - glyphLayout.width) / 2, Gdx.graphics.getHeight() / 2);
         }
         batch.end();
     }
@@ -111,7 +156,6 @@ public class GameScreen extends ScreenAdapter {
                 snakeX += SNAKE_MOVEMENT;
                 break;
         }
-        isDirectionSet = false;
     }
 
     private void updateBodyPartsPosition() {
@@ -206,8 +250,21 @@ public class GameScreen extends ScreenAdapter {
             direction = newSnakeDirection;
         }
     }
+
+    private void checkSnakeBodyCollision() {
+        for (BodyPart bodyPart : bodyParts) {
+            if (bodyPart.x == snakeX && bodyPart.y == snakeY) {
+                state = State.GAME_OVER;
+                break;
+            }
+        }
+    }
 }
 
 enum MovingDirection {
     LEFT, RIGHT, UP, DOWN;
+}
+
+enum State {
+    PLAYING, GAME_OVER;
 }
