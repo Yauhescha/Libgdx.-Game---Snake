@@ -1,10 +1,10 @@
-package com.hescha.jdigger;
+package com.hescha.snake;
 
 import android.os.Bundle;
 
 import com.badlogic.gdx.backends.android.AndroidApplication;
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
-import com.hescha.jdigger.DiggerGame;
+import com.hescha.snake.DiggerGame;
 
 public class AndroidLauncher extends AndroidApplication {
 	@Override

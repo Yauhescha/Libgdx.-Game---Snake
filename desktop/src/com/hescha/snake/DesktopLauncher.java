@@ -1,8 +1,7 @@
-package com.hescha.jdigger;
+package com.hescha.snake;
 
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
-import com.hescha.jdigger.DiggerGame;
 
 // Please note that on macOS your application needs to be started with the -XstartOnFirstThread JVM argument
 public class DesktopLauncher {
@@ -10,6 +9,6 @@ public class DesktopLauncher {
 		Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
 		config.setForegroundFPS(60);
 		config.setTitle("jDigger");
-		new Lwjgl3Application(new DiggerGame(), config);
+		new Lwjgl3Application(new SnakeGame(), config);
 	}
 }
