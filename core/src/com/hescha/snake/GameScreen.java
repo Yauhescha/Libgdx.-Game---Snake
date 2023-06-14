@@ -125,6 +125,8 @@ public class GameScreen extends ScreenAdapter {
             glyphLayout.setText(bitmapFont, GAME_OVER);
             bitmapFont.draw(batch, glyphLayout, (Gdx.graphics.getWidth() - glyphLayout.width) / 2, Gdx.graphics.getHeight() / 2);
         }
+        glyphLayout.setText(bitmapFont, "Scores: " + bodyParts.size);
+        bitmapFont.draw(batch, glyphLayout, (Gdx.graphics.getWidth() - glyphLayout.width) / 2, Gdx.graphics.getHeight() / 2 - 100);
         batch.end();
     }
 
