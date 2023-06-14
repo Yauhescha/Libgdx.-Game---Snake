@@ -3,7 +3,9 @@ package com.hescha.snake;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -13,8 +15,12 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.Viewport;
 
 public class GameScreen extends ScreenAdapter {
+    private static final float WORLD_WIDTH = 640;
+    private static final float WORLD_HEIGHT = 480;
     private static final float MOVE_TIME = 0.1F;
     private static final int SNAKE_MOVEMENT = 32;
     private static final int GRID_CELL = SNAKE_MOVEMENT;
@@ -27,6 +33,8 @@ public class GameScreen extends ScreenAdapter {
     private ShapeRenderer shapeRenderer;
     private BitmapFont bitmapFont;
     private GlyphLayout glyphLayout;
+    private Viewport viewport;
+    private Camera camera;
 
     private MovingDirection direction = MovingDirection.RIGHT;
     private State state = State.PLAYING;
@@ -37,7 +45,6 @@ public class GameScreen extends ScreenAdapter {
     private int snakeYBeforeUpdate = 0;
     private boolean isAppleAvailable;
     private boolean isDirectionSet;
-    private boolean hasHit;
     private int appleX;
     private int appleY;
     private Array<BodyPart> bodyParts = new Array<>();
@@ -45,6 +52,11 @@ public class GameScreen extends ScreenAdapter {
 
     @Override
     public void show() {
+        camera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        camera.position.set(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 0);
+        camera.update();
+        viewport = new FitViewport(WORLD_WIDTH, WORLD_HEIGHT, camera);
+
         batch = new SpriteBatch();
         snakeHead = new Texture(Gdx.files.internal("snakeHead.jpg"));
         snakeBody = new Texture(Gdx.files.internal("snakeBody.jpg"));
@@ -68,7 +80,7 @@ public class GameScreen extends ScreenAdapter {
                 break;
         }
         ScreenUtils.clear(Color.BLACK);
-//        drawGrid();
+        drawGrid();
         draw();
     }
 
@@ -113,6 +125,8 @@ public class GameScreen extends ScreenAdapter {
     }
 
     private void draw() {
+        batch.setProjectionMatrix(camera.projection);
+        batch.setTransformMatrix(camera.view);
         batch.begin();
         batch.draw(snakeHead, snakeX, snakeY);
         for (BodyPart bodyPart : bodyParts) {
@@ -123,18 +137,20 @@ public class GameScreen extends ScreenAdapter {
         }
         if (state == State.GAME_OVER) {
             glyphLayout.setText(bitmapFont, GAME_OVER);
-            bitmapFont.draw(batch, glyphLayout, (Gdx.graphics.getWidth() - glyphLayout.width) / 2, Gdx.graphics.getHeight() / 2);
+            bitmapFont.draw(batch, glyphLayout, (viewport.getWorldWidth() - glyphLayout.width) / 2, viewport.getWorldHeight() / 2);
         }
         glyphLayout.setText(bitmapFont, "Scores: " + bodyParts.size);
-        bitmapFont.draw(batch, glyphLayout, (Gdx.graphics.getWidth() - glyphLayout.width) / 2, Gdx.graphics.getHeight() / 2 - 100);
+        bitmapFont.draw(batch, glyphLayout, (viewport.getWorldWidth() - glyphLayout.width) / 2, viewport.getWorldHeight() / 2 - 100);
         batch.end();
     }
 
     private void checkAndPlaceApple() {
         if (!isAppleAvailable) {
             do {
-                appleX = MathUtils.random(Gdx.graphics.getWidth() / SNAKE_MOVEMENT - 1) * SNAKE_MOVEMENT;
-                appleY = MathUtils.random(Gdx.graphics.getHeight() / SNAKE_MOVEMENT - 1) * SNAKE_MOVEMENT;
+                int xRandom = (int) MathUtils.random(viewport.getWorldWidth() / SNAKE_MOVEMENT - 1);
+                int yRandom = (int) MathUtils.random(viewport.getWorldHeight() / SNAKE_MOVEMENT - 1);
+                appleX = xRandom * SNAKE_MOVEMENT;
+                appleY = yRandom * SNAKE_MOVEMENT;
                 isAppleAvailable = true;
             }
             while (appleX == snakeX && appleY == snakeY);
@@ -169,17 +185,17 @@ public class GameScreen extends ScreenAdapter {
     }
 
     private void checkForOutOfBounds() {
-        if (snakeX >= Gdx.graphics.getWidth()) {
+        if (snakeX >= viewport.getWorldWidth()) {
             snakeX = 0;
         }
         if (snakeX < 0) {
-            snakeX = Gdx.graphics.getWidth() - SNAKE_MOVEMENT;
+            snakeX = (int) (viewport.getWorldWidth() - SNAKE_MOVEMENT);
         }
-        if (snakeY >= Gdx.graphics.getHeight()) {
+        if (snakeY >= viewport.getWorldHeight()) {
             snakeY = 0;
         }
         if (snakeY < 0) {
-            snakeY = Gdx.graphics.getHeight() - SNAKE_MOVEMENT;
+            snakeY = (int) (viewport.getWorldHeight() - SNAKE_MOVEMENT);
         }
     }
 
@@ -217,9 +233,11 @@ public class GameScreen extends ScreenAdapter {
     }
 
     private void drawGrid() {
+        shapeRenderer.setProjectionMatrix(camera.projection);
+        shapeRenderer.setTransformMatrix(camera.view);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        for (int x = 0; x < Gdx.graphics.getWidth(); x += GRID_CELL) {
-            for (int y = 0; y < Gdx.graphics.getHeight(); y += GRID_CELL) {
+        for (int x = 0; x < viewport.getWorldWidth(); x += GRID_CELL) {
+            for (int y = 0; y < viewport.getWorldHeight(); y += GRID_CELL) {
                 shapeRenderer.rect(x, y, GRID_CELL, GRID_CELL);
             }
         }
