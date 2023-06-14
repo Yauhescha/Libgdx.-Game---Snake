@@ -7,13 +7,21 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 
 public class GameScreen extends ScreenAdapter {
-    public static final float MOVE_TIME = 0.1F;
-    public static final int SNAKE_MOVEMENT = 32;
+    private static final float MOVE_TIME = 0.1F;
+    private static final int SNAKE_MOVEMENT = 32;
+    private static final int GRID_CELL = SNAKE_MOVEMENT;
+
+    private SpriteBatch batch;
+    private Texture snakeHead;
+    private Texture snakeBody;
+    private Texture apple;
+    private ShapeRenderer shapeRenderer;
     private float timer = MOVE_TIME;
     private int snakeX = 0;
     private int snakeY = 0;
@@ -21,13 +29,11 @@ public class GameScreen extends ScreenAdapter {
     private int snakeYBeforeUpdate = 0;
     private MovingDirection direction = MovingDirection.RIGHT;
     private boolean isAppleAvailable;
+    private boolean isDirectionSet;
     private int appleX;
     private int appleY;
     private Array<BodyPart> bodyParts = new Array<>();
-    private SpriteBatch batch;
-    private Texture snakeHead;
-    private Texture snakeBody;
-    private Texture apple;
+
 
     @Override
     public void show() {
@@ -35,6 +41,7 @@ public class GameScreen extends ScreenAdapter {
         snakeHead = new Texture(Gdx.files.internal("snakeHead.jpg"));
         snakeBody = new Texture(Gdx.files.internal("snakeBody.jpg"));
         apple = new Texture(Gdx.files.internal("apple.jpg"));
+        shapeRenderer = new ShapeRenderer();
     }
 
     @Override
@@ -49,8 +56,9 @@ public class GameScreen extends ScreenAdapter {
         }
         checkAndPlaceApple();
         checkAppleCollision();
-        ScreenUtils.clear(Color.WHITE);
+        ScreenUtils.clear(Color.BLACK);
 
+        drawGrid();
         draw();
     }
 
@@ -103,10 +111,11 @@ public class GameScreen extends ScreenAdapter {
                 snakeX += SNAKE_MOVEMENT;
                 break;
         }
+        isDirectionSet = false;
     }
 
-    private void updateBodyPartsPosition(){
-        if(bodyParts.size>0){
+    private void updateBodyPartsPosition() {
+        if (bodyParts.size > 0) {
             BodyPart body = bodyParts.removeIndex(0);
             body.updateBodyPosition(snakeXBeforeUpdate, snakeYBeforeUpdate);
             bodyParts.add(body);
@@ -134,10 +143,10 @@ public class GameScreen extends ScreenAdapter {
         boolean uPressed = Gdx.input.isKeyPressed(Input.Keys.UP);
         boolean dPressed = Gdx.input.isKeyPressed(Input.Keys.DOWN);
 
-        if (lPressed) direction = MovingDirection.LEFT;
-        if (rPressed) direction = MovingDirection.RIGHT;
-        if (uPressed) direction = MovingDirection.UP;
-        if (dPressed) direction = MovingDirection.DOWN;
+        if (lPressed) updateDirection(MovingDirection.LEFT);
+        if (rPressed) updateDirection(MovingDirection.RIGHT);
+        if (uPressed) updateDirection(MovingDirection.UP);
+        if (dPressed) updateDirection(MovingDirection.DOWN);
     }
 
     private class BodyPart {
@@ -161,6 +170,42 @@ public class GameScreen extends ScreenAdapter {
         }
     }
 
+    private void drawGrid() {
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        for (int x = 0; x < Gdx.graphics.getWidth(); x += GRID_CELL) {
+            for (int y = 0; y < Gdx.graphics.getHeight(); y += GRID_CELL) {
+                shapeRenderer.rect(x, y, GRID_CELL, GRID_CELL);
+            }
+        }
+        shapeRenderer.end();
+    }
+
+    private void updateDirection(MovingDirection newSnakeDirection) {
+        if (!isDirectionSet && direction != newSnakeDirection) {
+            isDirectionSet = true;
+            switch (newSnakeDirection) {
+                case UP:
+                    updateIfNotOppositeDirection(newSnakeDirection, MovingDirection.DOWN);
+                    break;
+                case DOWN:
+                    updateIfNotOppositeDirection(newSnakeDirection, MovingDirection.UP);
+                    break;
+                case LEFT:
+                    updateIfNotOppositeDirection(newSnakeDirection, MovingDirection.RIGHT);
+                    break;
+                case RIGHT:
+                    updateIfNotOppositeDirection(newSnakeDirection, MovingDirection.LEFT);
+                    break;
+            }
+        }
+    }
+
+    private void updateIfNotOppositeDirection(MovingDirection newSnakeDirection,
+                                              MovingDirection oppositeDirection) {
+        if (direction != oppositeDirection || bodyParts.size == 0) {
+            direction = newSnakeDirection;
+        }
+    }
 }
 
 enum MovingDirection {
